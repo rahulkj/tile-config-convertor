@@ -3,18 +3,20 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
-  "flag"
+	"strings"
 )
 
 type Errands struct {
-  inputFile    string
-	outputFile   string
+	inputFile      string
+	outputFile     string
+	outputVarsFile string
 }
 
 func (e Errands) ProcessData() {
-  if e.inputFile == "" || e.outputFile == "" {
+	if e.inputFile == "" || e.outputFile == "" || e.outputVarsFile == "" {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -22,25 +24,32 @@ func (e Errands) ProcessData() {
 	rawData := GetRaw(e.inputFile)
 
 	var file *os.File
+	var varFile *os.File
+
 	if !FileExists(e.outputFile) {
 		file = CreateFile(e.outputFile)
 	}
 
-  defer file.Close()
+	if !FileExists(e.outputVarsFile) {
+		varFile = CreateFile(e.outputVarsFile)
+	}
 
-  // Generic interface to read the file into
+	defer file.Close()
+	defer varFile.Close()
+
+	// Generic interface to read the file into
 	var f interface{}
 	err := json.Unmarshal(rawData, &f)
 	if err != nil {
 		fmt.Println("Error parsing JSON: ", err)
 	}
 
-  // Fetch the top level errands from the json
-  m := f.(map[string]interface{})
+	// Fetch the top level errands from the json
+	m := f.(map[string]interface{})
 
-  var v []interface{}
+	var v []interface{}
 
-  // Fetch the errands attribute from the json
+	// Fetch the errands attribute from the json
 	if errandsMap, ok := m["errands"]; ok {
 		// Fetch the errands from the errands map
 		v = errandsMap.([]interface{})
@@ -49,24 +58,33 @@ func (e Errands) ProcessData() {
 		os.Exit(1)
 	}
 
-  s := "errand-config:\n"
-  WriteContents(file, s)
+	s := "errand-config:\n"
+	WriteContents(file, s)
 
 	for k := range v {
 		node := v[k]
 
 		nodeData := node.(map[string]interface{})
-    if nodeData["post_deploy"] == true || nodeData["post_deploy"] == false {
-      var buf bytes.Buffer
-      s := fmt.Sprintf("  %s: \n", nodeData["name"])
-      buf.WriteString(s)
+		if nodeData["post_deploy"] == true || nodeData["post_deploy"] == false {
+			var buf bytes.Buffer
 
-      s = fmt.Sprintf("    %s: %t\n", "post-deploy-state", nodeData["post_deploy"])
-      buf.WriteString(s)
+			k := strings.ReplaceAll(fmt.Sprintf("%v", nodeData["name"]), "-", "_")
 
-      s = fmt.Sprintf("    %s: %s\n", "pre-delete-state", "default")
-      buf.WriteString(s)
-    	WriteContents(file, buf.String())
-    }
-  }
+			s := fmt.Sprintf("  %s: \n", nodeData["name"])
+			buf.WriteString(s)
+
+			s = fmt.Sprintf("    %s: ((%s))\n", "post-deploy-state", k+"_post_deploy_state")
+			v := fmt.Sprintf("%s: %t\n", k+"_post_deploy_state", nodeData["post_deploy"])
+			buf.WriteString(s)
+
+			WriteContents(varFile, v)
+
+			s = fmt.Sprintf("    %s: ((%s))\n", "pre-delete-state", k+"_pre_delete_state")
+			v = fmt.Sprintf("%s: %s\n", k+"_pre_delete_state", "default")
+			buf.WriteString(s)
+
+			WriteContents(file, buf.String())
+			WriteContents(varFile, v)
+		}
+	}
 }

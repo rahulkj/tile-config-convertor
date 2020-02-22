@@ -2,14 +2,16 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
-	"flag"
+	"strings"
 )
 
 type Resources struct {
-	inputFile    	string
-	outputFile 		string
+	inputFile      string
+	outputFile     string
+	outputVarsFile string
 }
 
 func (r Resources) ProcessData() {
@@ -22,11 +24,18 @@ func (r Resources) ProcessData() {
 	rawData := GetRaw(r.inputFile)
 
 	var file *os.File
+	var varFile *os.File
+
 	if !FileExists(r.outputFile) {
 		file = CreateFile(r.outputFile)
 	}
 
+	if !FileExists(r.outputVarsFile) {
+		varFile = CreateFile(r.outputVarsFile)
+	}
+
 	defer file.Close()
+	defer varFile.Close()
 
 	// Generic interface to read the file into
 	var f interface{}
@@ -55,18 +64,26 @@ func (r Resources) ProcessData() {
 	for _, item := range resources {
 		value := item.(map[string]interface{})
 		if int(value["instances_best_fit"].(float64)) != 0 {
+			k := strings.ReplaceAll(fmt.Sprintf("%v", value["identifier"]), "-", "_")
 			s := fmt.Sprintf("  %v:\n", value["identifier"])
 			WriteContents(file, s)
 
-			s = fmt.Sprintf("    instances: %v\n", value["instances_best_fit"])
-			WriteContents(file, s)
+			s = fmt.Sprintf("    instances: ((%v))\n", fmt.Sprintf("%v", k)+"_instances")
+			v := fmt.Sprintf("%s: %v\n", fmt.Sprintf("%v", k)+"_instances", value["instances_best_fit"])
 
-			s = fmt.Sprintf("    instance_type:\n      id: %v\n", value["instance_type_best_fit"])
 			WriteContents(file, s)
+			WriteContents(varFile, v)
+
+			s = fmt.Sprintf("    instance_type:\n      id: ((%v))\n", fmt.Sprintf("%v", k)+"instance_type")
+			v = fmt.Sprintf("%s: %v\n", fmt.Sprintf("%v", k)+"_instance_type", value["instance_type_best_fit"])
+			WriteContents(file, s)
+			WriteContents(varFile, v)
 
 			if _, ok := value["persistent_disk_mb"]; ok {
-				s := fmt.Sprintf("    persistent_disk:\n      size_mb: \"%v\"\n", value["persistent_disk_best_fit"])
+				s := fmt.Sprintf("    persistent_disk:\n      size_mb: ((%v))\n", fmt.Sprintf("%v", k)+"persistent_disk_size_mb")
+				v := fmt.Sprintf("%s: \"%v\"\n", fmt.Sprintf("%v", k)+"_persistent_disk_size_mb", value["persistent_disk_best_fit"])
 				WriteContents(file, s)
+				WriteContents(varFile, v)
 			}
 		}
 	}

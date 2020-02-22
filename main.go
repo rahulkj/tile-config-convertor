@@ -6,9 +6,10 @@ import (
 )
 
 func main() {
-	generate := flag.String("g", "", "properties, resources, errands, network-azs")
+	generate := flag.String("c", "", "properties, resources, errands, network-azs")
 	inputFile := flag.String("i", "", "input filename")
 	outputFile := flag.String("o", "", "output filename")
+	outputVarsFile := flag.String("ov", "", "output vars filename")
 
 	flag.Parse()
 
@@ -18,16 +19,16 @@ func main() {
 	}
 
 	if *generate == "properties" {
-		p := Properties{inputFile: *inputFile, outputFile: *outputFile}
+		p := Properties{inputFile: *inputFile, outputFile: *outputFile, outputVarsFile: *outputVarsFile}
 		p.ProcessData()
 	} else if *generate == "resources" {
-		r := Resources{inputFile: *inputFile, outputFile: *outputFile}
+		r := Resources{inputFile: *inputFile, outputFile: *outputFile, outputVarsFile: *outputVarsFile}
 		r.ProcessData()
 	} else if *generate == "errands" {
-		e := Errands{inputFile: *inputFile, outputFile: *outputFile}
+		e := Errands{inputFile: *inputFile, outputFile: *outputFile, outputVarsFile: *outputVarsFile}
 		e.ProcessData()
 	} else if *generate == "network-azs" {
-		nz := NetworksAndAZs{outputFile: *outputFile}
+		nz := NetworksAndAZs{outputFile: *outputFile, outputVarsFile: *outputVarsFile}
 		nz.ProcessData()
 	}
 }

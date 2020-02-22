@@ -12,8 +12,9 @@ import (
 )
 
 type Properties struct {
-	inputFile  string
-	outputFile string
+	inputFile      string
+	outputFile     string
+	outputVarsFile string
 }
 
 func (p Properties) ProcessData() {
@@ -27,11 +28,13 @@ func (p Properties) ProcessData() {
 
 	var file *os.File
 	var varFile *os.File
+
 	if !FileExists(p.outputFile) {
 		file = CreateFile(p.outputFile)
+	}
 
-		var varsFile = strings.Replace(p.outputFile, ".", "_vars.", 1)
-		varFile = CreateFile(varsFile)
+	if !FileExists(p.outputVarsFile) {
+		varFile = CreateFile(p.outputVarsFile)
 	}
 
 	defer file.Close()
