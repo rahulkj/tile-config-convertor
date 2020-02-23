@@ -10,19 +10,19 @@ Once the product is uploaded and staged, the platform engineer can use the [om c
 To download all the available properties for a given tile execute:
 
 ```
-om -t OPS-MANAGER-URL -u USERNAME -p PASSWORD curl -p /api/v0/staged/products/$PRODUCT_GUID/properties >> properties.json
+om -t OPS-MANAGER-URL -u USERNAME -p PASSWORD curl -p /api/v0/staged/products/$PRODUCT_GUID/properties > properties.json
 ```
 
 To download all the available resources for a given tile execute:
 
 ```
-om -t OPS-MANAGER-URL -u USERNAME -p PASSWORD curl -p /api/v0/staged/products/$PRODUCT_GUID/resources >> resources.json
+om -t OPS-MANAGER-URL -u USERNAME -p PASSWORD curl -p /api/v0/staged/products/$PRODUCT_GUID/resources > resources.json
 ```
 
 To download all the available errands for a given tile execute:
 
 ```
-om -t OPS-MANAGER-URL -u USERNAME -p PASSWORD curl -p /api/v0/staged/products/$PRODUCT_GUID/errands >> errands.json
+om -t OPS-MANAGER-URL -u USERNAME -p PASSWORD curl -p /api/v0/staged/products/$PRODUCT_GUID/errands > errands.json
 ```
 
 These commands produce a **json** file.
