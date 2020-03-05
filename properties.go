@@ -89,30 +89,42 @@ func (p Properties) ProcessData() {
 			WriteContents(file, s)
 
 			var kv = strings.ReplaceAll(strings.ReplaceAll(strings.Replace(k, ".properties.", "", 1), ".", "_"), "-", "_")
+			if strings.HasPrefix(kv, "_") {
+				kv = strings.Replace(kv, "_", "", 1)
+			}
 
 			if nodeData["type"] == "rsa_cert_credentials" {
-				var buf bytes.Buffer
-				buf = handleCert(4, "value: \n", buf)
-				WriteContents(file, buf.String())
+				var configBuf bytes.Buffer
+				var varsBuf bytes.Buffer
+				configBuf, varsBuf = handleCert(4, kv, "value: \n", configBuf, varsBuf)
+				WriteContents(file, configBuf.String())
+				WriteContents(varFile, varsBuf.String())
 			} else if nodeData["type"] == "secret" {
 				var buf bytes.Buffer
 				buf.WriteString("    value: \n")
-				buf.WriteString("      secret: \n")
+				buf.WriteString(fmt.Sprintf("      secret: ((%v))\n", kv+"_secret"))
 				WriteContents(file, buf.String())
+				WriteContents(varFile, fmt.Sprintf("%v: \n", kv+"_secret"))
 			} else if nodeData["type"] == "simple_credentials" {
 				var buf bytes.Buffer
 				buf.WriteString("    value: \n")
-				buf.WriteString("      identity: \n")
-				buf.WriteString("      password: \n")
+				buf.WriteString(fmt.Sprintf("      identity: ((%v))\n", kv+"_identity"))
+				buf.WriteString(fmt.Sprintf("      password: ((%v))\n", kv+"_password"))
 				WriteContents(file, buf.String())
+				WriteContents(varFile, fmt.Sprintf("%v: \n", kv+"_identity"))
+				WriteContents(varFile, fmt.Sprintf("%v: \n", kv+"_password"))
 			} else if nodeData["type"] == "multi_select_options" {
-				var buf bytes.Buffer
-				buf = handleMultiSelectOptions(nodeData)
-				WriteContents(file, buf.String())
+				var configBuf bytes.Buffer
+				var varBuf bytes.Buffer
+				configBuf, varBuf = handleMultiSelectOptions(kv, nodeData)
+				WriteContents(file, configBuf.String())
+				WriteContents(varFile, varBuf.String())
 			} else if nodeData["type"] == "collection" {
-				var buf bytes.Buffer
-				buf = handleCollections(nodeData)
-				WriteContents(file, buf.String())
+				var configBuf bytes.Buffer
+				var varsBuf bytes.Buffer
+				configBuf, varsBuf = handleCollections(kv, nodeData)
+				WriteContents(file, configBuf.String())
+				WriteContents(varFile, varsBuf.String())
 			} else if nodeData["type"] == "integer" {
 				var s string
 				var v string
@@ -134,9 +146,15 @@ func (p Properties) ProcessData() {
 					s = fmt.Sprintf("%svalue: ((%v))\n", getPaddedString(4), kv)
 					v = fmt.Sprintf("%s: %v\n", kv, value.(int32))
 				default:
-					s = fmt.Sprintf("%svalue: \n", getPaddedString(4))
+					s = fmt.Sprintf("%svalue: ((%v))\n", getPaddedString(4), kv)
 					v = fmt.Sprintf("%s: \n", kv)
 				}
+				WriteContents(file, s)
+				WriteContents(varFile, v)
+			} else if nodeData["type"] == "boolean" {
+				value := nodeData["value"]
+				s := fmt.Sprintf("%svalue: ((%v))\n", getPaddedString(4), kv)
+				v := fmt.Sprintf("%s: %v\n", kv, value)
 				WriteContents(file, s)
 				WriteContents(varFile, v)
 			} else {
@@ -145,7 +163,7 @@ func (p Properties) ProcessData() {
 				value := nodeData["value"]
 				if value != nil {
 					s = fmt.Sprintf("%svalue: ((%v))\n", getPaddedString(4), kv)
-					v = fmt.Sprintf("%s: %v\n", kv, value)
+					v = fmt.Sprintf("%s: \"%v\"\n", kv, value)
 				} else {
 					s = fmt.Sprintf("%svalue: ((%v))\n", getPaddedString(4), kv)
 					v = fmt.Sprintf("%s: \n", kv)
@@ -157,23 +175,29 @@ func (p Properties) ProcessData() {
 	}
 }
 
-func handleCert(padding int, firstLine string, buf bytes.Buffer) bytes.Buffer {
+func handleCert(padding int, prefix string, firstLine string, configBuf bytes.Buffer, varsBuf bytes.Buffer) (bytes.Buffer, bytes.Buffer) {
 	s := getPaddedString(padding) + firstLine
-	buf.WriteString(s)
+	configBuf.WriteString(s)
 
 	paddedString := getPaddedString(padding + 2)
-	s = paddedString + "private_key_pem: \n"
-	buf.WriteString(s)
+	s = paddedString + "private_key_pem: ((" + prefix + "_private_key_pem)) \n"
+	configBuf.WriteString(s)
 
-	s = paddedString + "cert_pem: \n"
-	buf.WriteString(s)
+	s = paddedString + "cert_pem: ((" + prefix + "_cert_pem)) \n"
+	configBuf.WriteString(s)
 
-	return buf
+	varsBuf.WriteString(fmt.Sprintf("%s: \n", prefix+"_private_key_pem"))
+	varsBuf.WriteString(fmt.Sprintf("%s: \n", prefix+"_cert_pem"))
+
+	return configBuf, varsBuf
 }
 
-func handleMultiSelectOptions(nodeData map[string]interface{}) bytes.Buffer {
-	var buf bytes.Buffer
-	buf.WriteString("    value: \n")
+func handleMultiSelectOptions(kv string, nodeData map[string]interface{}) (bytes.Buffer, bytes.Buffer) {
+	var configBuf bytes.Buffer
+	var varBuf bytes.Buffer
+
+	configBuf.WriteString("    value: \n")
+
 	value := nodeData["value"]
 	valueType := reflect.TypeOf(value)
 	if valueType != nil {
@@ -182,58 +206,65 @@ func handleMultiSelectOptions(nodeData map[string]interface{}) bytes.Buffer {
 			value := nodeData["value"].([]interface{})
 			for _, item := range value {
 				s := fmt.Sprintf("%s- %s\n", getPaddedString(4), item)
-				buf.WriteString(s)
+				configBuf.WriteString(s)
 			}
 		case reflect.String:
-			s := fmt.Sprintf("%s- %s\n", getPaddedString(4), value)
-			buf.WriteString(s)
+			s := fmt.Sprintf("%s- ((%s))\n", getPaddedString(4), kv)
+			configBuf.WriteString(s)
+			varBuf.WriteString(fmt.Sprintf("%s: %s\n", kv, value))
 		}
+	} else {
+		s := fmt.Sprintf("%s- ((%s))\n", getPaddedString(4), kv)
+		configBuf.WriteString(s)
+		varBuf.WriteString(fmt.Sprintf("%s: \n", kv))
 	}
-	return buf
+	return configBuf, varBuf
 }
 
-func handleCollections(nodeData map[string]interface{}) bytes.Buffer {
-	var buf bytes.Buffer
+func handleCollections(kv string, nodeData map[string]interface{}) (bytes.Buffer, bytes.Buffer) {
+	var configBuf bytes.Buffer
+	var varsBuf bytes.Buffer
 	value := nodeData["value"].([]interface{})
 
-	buf.WriteString("    value: \n")
+	configBuf.WriteString("    value: \n")
 
 	for _, item := range value {
 		arrayAdded := false
 		for innerKey, innerVal := range item.(map[string]interface{}) {
 			typeAssertedInnerValue := innerVal.(map[string]interface{})
 			innerValueType := typeAssertedInnerValue["type"]
+			var innerkv = strings.ReplaceAll(strings.ReplaceAll(strings.Replace(strings.Replace(innerKey, ".properties.", "", 1), ".", "", 1), ".", "_"), "-", "_")
 			var s string
 			if !arrayAdded {
 				if innerValueType == "rsa_cert_credentials" {
 					s = fmt.Sprintf("- %s:\n", innerKey)
-					buf = handleCert(4, s, buf)
+					configBuf, varsBuf = handleCert(4, kv+innerkv, s, configBuf, varsBuf)
 				} else if innerValueType == "secret" {
-					s = fmt.Sprintf("%s- %s:\n", getPaddedString(4), innerKey)
-					buf.WriteString(s)
-					buf.WriteString("        secret: \n")
+					configBuf.WriteString(fmt.Sprintf("%s- %s:\n", getPaddedString(4), innerKey))
+					configBuf.WriteString(fmt.Sprintf("        secret: ((%v))\n", kv+innerkv+"_secret"))
+					varsBuf.WriteString(fmt.Sprintf("%s: \n", kv+innerkv+"_secret"))
 				} else {
-					s = fmt.Sprintf("%s- %s: %v \n", getPaddedString(4), innerKey, typeAssertedInnerValue["value"])
-					buf.WriteString(s)
+					configBuf.WriteString(fmt.Sprintf("%s- %s: ((%v)) \n", getPaddedString(4), innerKey, kv+innerkv))
+					varsBuf.WriteString(fmt.Sprintf("%s: %v\n", kv+innerkv, typeAssertedInnerValue["value"]))
 				}
 				arrayAdded = true
 			} else {
 				if innerValueType == "rsa_cert_credentials" {
 					s = fmt.Sprintf("%s:\n", innerKey)
-					buf = handleCert(6, s, buf)
+					configBuf, varsBuf = handleCert(6, innerKey, s, configBuf, varsBuf)
 				} else if innerValueType == "secret" {
-					s = fmt.Sprintf("%s%s:\n", getPaddedString(6), innerKey)
-					buf.WriteString(s)
-					buf.WriteString("        secret: \n")
+					configBuf.WriteString(fmt.Sprintf("%s%s:\n", getPaddedString(6), innerKey))
+					configBuf.WriteString(fmt.Sprintf("        secret: ((%v))\n", kv+innerkv+"_secret"))
+					varsBuf.WriteString(fmt.Sprintf("%s: \n", kv+innerkv+"_secret"))
 				} else {
-					s = fmt.Sprintf("%s%s: %v \n", getPaddedString(6), innerKey, typeAssertedInnerValue["value"])
-					buf.WriteString(s)
+					configBuf.WriteString(fmt.Sprintf("%s%s: ((%v)) \n", getPaddedString(6), innerKey, kv+innerkv+"_secret"))
+					varsBuf.WriteString(fmt.Sprintf("%s: %v\n", kv+innerkv, typeAssertedInnerValue["value"]))
 				}
 			}
 		}
 		arrayAdded = false
 	}
-	return buf
+	return configBuf, varsBuf
 }
 
 func getPaddedString(count int) string {

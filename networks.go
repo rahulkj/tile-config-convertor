@@ -34,9 +34,9 @@ func (nz NetworksAndAZs) ProcessData() {
 
 	var buf bytes.Buffer
 	buf.WriteString("network-properties:\n")
-	buf.WriteString("  network: ((network_name))\n")
-	buf.WriteString("    name:\n")
-	buf.WriteString("  service-network:\n")
+	buf.WriteString("  network: \n")
+	buf.WriteString("    name: ((network_name))\n")
+	buf.WriteString("  service_network:\n")
 	buf.WriteString("    name: ((service_network_name))\n")
 	buf.WriteString("  other_availability_zones:\n")
 	buf.WriteString("  - name: ((az_1_name))\n")

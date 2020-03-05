@@ -74,13 +74,13 @@ func (r Resources) ProcessData() {
 			WriteContents(file, s)
 			WriteContents(varFile, v)
 
-			s = fmt.Sprintf("    instance_type:\n      id: ((%v))\n", fmt.Sprintf("%v", k)+"instance_type")
+			s = fmt.Sprintf("    instance_type:\n      id: ((%v))\n", fmt.Sprintf("%v", k)+"_instance_type")
 			v = fmt.Sprintf("%s: %v\n", fmt.Sprintf("%v", k)+"_instance_type", value["instance_type_best_fit"])
 			WriteContents(file, s)
 			WriteContents(varFile, v)
 
 			if _, ok := value["persistent_disk_mb"]; ok {
-				s := fmt.Sprintf("    persistent_disk:\n      size_mb: ((%v))\n", fmt.Sprintf("%v", k)+"persistent_disk_size_mb")
+				s := fmt.Sprintf("    persistent_disk:\n      size_mb: ((%v))\n", fmt.Sprintf("%v", k)+"_persistent_disk_size_mb")
 				v := fmt.Sprintf("%s: \"%v\"\n", fmt.Sprintf("%v", k)+"_persistent_disk_size_mb", value["persistent_disk_best_fit"])
 				WriteContents(file, s)
 				WriteContents(varFile, v)
