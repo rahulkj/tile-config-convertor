@@ -238,14 +238,14 @@ func handleCollections(kv string, nodeData map[string]interface{}) (bytes.Buffer
 			if !arrayAdded {
 				if innerValueType == "rsa_cert_credentials" {
 					s = fmt.Sprintf("- %s:\n", innerKey)
-					configBuf, varsBuf = handleCert(4, kv+innerkv, s, configBuf, varsBuf)
+					configBuf, varsBuf = handleCert(4, kv+"_"+innerkv, s, configBuf, varsBuf)
 				} else if innerValueType == "secret" {
 					configBuf.WriteString(fmt.Sprintf("%s- %s:\n", getPaddedString(4), innerKey))
-					configBuf.WriteString(fmt.Sprintf("        secret: ((%v))\n", kv+innerkv+"_secret"))
-					varsBuf.WriteString(fmt.Sprintf("%s: \n", kv+innerkv+"_secret"))
+					configBuf.WriteString(fmt.Sprintf("        secret: ((%v))\n", kv+"_"+innerkv+"_secret"))
+					varsBuf.WriteString(fmt.Sprintf("%s: \n", kv+"_"+innerkv+"_secret"))
 				} else {
-					configBuf.WriteString(fmt.Sprintf("%s- %s: ((%v)) \n", getPaddedString(4), innerKey, kv+innerkv))
-					varsBuf.WriteString(fmt.Sprintf("%s: %v\n", kv+innerkv, typeAssertedInnerValue["value"]))
+					configBuf.WriteString(fmt.Sprintf("%s- %s: ((%v)) \n", getPaddedString(4), innerKey, kv+"_"+innerkv))
+					varsBuf.WriteString(fmt.Sprintf("%s: %v\n", kv+"_"+innerkv, typeAssertedInnerValue["value"]))
 				}
 				arrayAdded = true
 			} else {
@@ -254,11 +254,11 @@ func handleCollections(kv string, nodeData map[string]interface{}) (bytes.Buffer
 					configBuf, varsBuf = handleCert(6, innerKey, s, configBuf, varsBuf)
 				} else if innerValueType == "secret" {
 					configBuf.WriteString(fmt.Sprintf("%s%s:\n", getPaddedString(6), innerKey))
-					configBuf.WriteString(fmt.Sprintf("        secret: ((%v))\n", kv+innerkv+"_secret"))
-					varsBuf.WriteString(fmt.Sprintf("%s: \n", kv+innerkv+"_secret"))
+					configBuf.WriteString(fmt.Sprintf("        secret: ((%v))\n", kv+"_"+innerkv+"_secret"))
+					varsBuf.WriteString(fmt.Sprintf("%s: \n", kv+"_"+innerkv+"_secret"))
 				} else {
-					configBuf.WriteString(fmt.Sprintf("%s%s: ((%v)) \n", getPaddedString(6), innerKey, kv+innerkv+"_secret"))
-					varsBuf.WriteString(fmt.Sprintf("%s: %v\n", kv+innerkv, typeAssertedInnerValue["value"]))
+					configBuf.WriteString(fmt.Sprintf("%s%s: ((%v)) \n", getPaddedString(6), innerKey, kv+"_"+innerkv))
+					varsBuf.WriteString(fmt.Sprintf("%s: %v\n", kv+"_"+innerkv, typeAssertedInnerValue["value"]))
 				}
 			}
 		}
