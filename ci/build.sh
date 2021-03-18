@@ -1,5 +1,12 @@
 #!/bin/bash -e
 
+set +e
+go mod init
+set -e
+
+go mod verify
+go mod tidy
+
 go test
 
 if [[ -d releases ]]; then

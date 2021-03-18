@@ -65,26 +65,36 @@ func (e Errands) ProcessData() {
 		node := v[k]
 
 		nodeData := node.(map[string]interface{})
+		var buf bytes.Buffer
+
+		k := strings.ReplaceAll(fmt.Sprintf("%v", nodeData["name"]), "-", "_")
+
+		s := fmt.Sprintf("  %s: \n", nodeData["name"])
+		buf.WriteString(s)
+
+		v := ""
 		if nodeData["post_deploy"] == true || nodeData["post_deploy"] == false {
-			var buf bytes.Buffer
-
-			k := strings.ReplaceAll(fmt.Sprintf("%v", nodeData["name"]), "-", "_")
-
-			s := fmt.Sprintf("  %s: \n", nodeData["name"])
-			buf.WriteString(s)
-
 			s = fmt.Sprintf("    %s: ((%s))\n", "post-deploy-state", k+"_post_deploy_state")
-			v := fmt.Sprintf("%s: %t\n", k+"_post_deploy_state", nodeData["post_deploy"])
+			v = fmt.Sprintf("%s: %t\n", k+"_post_deploy_state", nodeData["post_deploy"])
 			buf.WriteString(s)
-
 			WriteContents(varFile, v)
 
 			s = fmt.Sprintf("    %s: ((%s))\n", "pre-delete-state", k+"_pre_delete_state")
 			v = fmt.Sprintf("%s: %s\n", k+"_pre_delete_state", "default")
+			WriteContents(varFile, v)
+			buf.WriteString(s)
+		} else if nodeData["pre_delete"] == true || nodeData["pre_delete"] == false {
+			s = fmt.Sprintf("    %s: ((%s))\n", "post-deploy-state", k+"_post_deploy_state")
+			v = fmt.Sprintf("%s: %s\n", k+"_post_deploy_state", "default")
+			WriteContents(varFile, v)
 			buf.WriteString(s)
 
-			WriteContents(file, buf.String())
+			v = fmt.Sprintf("%s: %t\n", k+"_pre_delete_state", nodeData["pre_delete"])
+			s = fmt.Sprintf("    %s: ((%s))\n", "pre-delete-state", k+"_pre_delete_state")
 			WriteContents(varFile, v)
+			buf.WriteString(s)
 		}
+
+		WriteContents(file, buf.String())
 	}
 }
