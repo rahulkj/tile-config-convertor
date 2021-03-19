@@ -78,17 +78,7 @@ func (e Errands) ProcessData() {
 			v = fmt.Sprintf("%s: %t\n", k+"_post_deploy_state", nodeData["post_deploy"])
 			buf.WriteString(s)
 			WriteContents(varFile, v)
-
-			s = fmt.Sprintf("    %s: ((%s))\n", "pre-delete-state", k+"_pre_delete_state")
-			v = fmt.Sprintf("%s: %s\n", k+"_pre_delete_state", "default")
-			WriteContents(varFile, v)
-			buf.WriteString(s)
 		} else if nodeData["pre_delete"] == true || nodeData["pre_delete"] == false {
-			s = fmt.Sprintf("    %s: ((%s))\n", "post-deploy-state", k+"_post_deploy_state")
-			v = fmt.Sprintf("%s: %s\n", k+"_post_deploy_state", "default")
-			WriteContents(varFile, v)
-			buf.WriteString(s)
-
 			v = fmt.Sprintf("%s: %t\n", k+"_pre_delete_state", nodeData["pre_delete"])
 			s = fmt.Sprintf("    %s: ((%s))\n", "pre-delete-state", k+"_pre_delete_state")
 			WriteContents(varFile, v)
